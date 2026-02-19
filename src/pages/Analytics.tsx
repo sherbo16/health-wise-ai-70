@@ -1,13 +1,40 @@
+import { useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { BarChart3, TrendingUp, Heart, Activity } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const Analytics = () => {
+  const [lastMonth, setLastMonth] = useState("");
+  const [current, setCurrent] = useState("");
+  const [chartData, setChartData] = useState<{ name: string; value: number }[] | null>(null);
+  const [badge, setBadge] = useState("");
+
   const stats = [
     { label: "Health Score", value: "85", icon: Heart, color: "text-rose-500", bgColor: "bg-rose-50 dark:bg-rose-950" },
     { label: "Active Days", value: "23", icon: Activity, color: "text-blue-500", bgColor: "bg-blue-50 dark:bg-blue-950" },
     { label: "Goals Met", value: "12", icon: TrendingUp, color: "text-emerald-500", bgColor: "bg-emerald-50 dark:bg-emerald-950" },
   ];
+
+  const handleCompare = () => {
+    const past = parseFloat(lastMonth);
+    const cur = parseFloat(current);
+    if (isNaN(past) || isNaN(cur)) return;
+
+    setChartData([
+      { name: "Last Month", value: past },
+      { name: "Current", value: cur },
+    ]);
+    setBadge(
+      cur < past
+        ? "Health is Improving! ✅"
+        : cur === past
+        ? "No change detected ➡️"
+        : "Needs attention ⚠️"
+    );
+  };
 
   return (
     <PageLayout>
@@ -40,6 +67,51 @@ const Analytics = () => {
               </Card>
             ))}
           </div>
+
+          {/* Compare Reports Widget */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Compare Reports</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Input
+                  type="number"
+                  placeholder="Last Month Blood Sugar"
+                  value={lastMonth}
+                  onChange={(e) => setLastMonth(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Current Blood Sugar"
+                  value={current}
+                  onChange={(e) => setCurrent(e.target.value)}
+                />
+              </div>
+              <Button onClick={handleCompare} disabled={!lastMonth || !current}>
+                Compare
+              </Button>
+
+              {chartData && (
+                <div className="mt-4 space-y-4">
+                  {badge && (
+                    <div className="inline-block rounded-full px-4 py-1 text-sm font-semibold bg-accent text-accent-foreground">
+                      {badge}
+                    </div>
+                  )}
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="hsl(199, 89%, 48%)" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

@@ -3,14 +3,20 @@ import PageLayout from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pill, Loader2, Search } from "lucide-react";
+import { Pill, Loader2, Search, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { addUserLog } from "@/lib/userLogs";
 
 const MedicineGuide = () => {
   const [medicine, setMedicine] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Pill identifier state
+  const [pillFile, setPillFile] = useState<File | null>(null);
+  const [pillLoading, setPillLoading] = useState(false);
+  const [pillResult, setPillResult] = useState("");
 
   const handleSearch = async () => {
     if (!medicine.trim()) {
@@ -21,20 +27,32 @@ const MedicineGuide = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("healthcare-ai", {
-        body: {
-          type: "medicine-info",
-          input: medicine,
-        },
+        body: { type: "medicine-info", input: medicine },
       });
-
       if (error) throw error;
       setResult(data.result);
+      addUserLog("Medicine Search", `Searched: ${medicine}`);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Failed to get medicine information. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePillUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPillFile(file);
+    setPillResult("");
+    setPillLoading(true);
+
+    addUserLog("Pill Identifier", `Uploaded photo: ${file.name}`);
+
+    setTimeout(() => {
+      setPillLoading(false);
+      setPillResult("Detected: Dolo 650. Use: Fever/Pain. Dosage: After food.");
+    }, 2000);
   };
 
   return (
@@ -50,6 +68,46 @@ const MedicineGuide = () => {
               <p className="text-muted-foreground">Learn about medicines, dosage, and side effects</p>
             </div>
           </div>
+
+          {/* Pill Identifier Simulation */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" /> Pill Identifier
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Button variant="outline" asChild>
+                  <span>
+                    <Camera className="mr-2 h-4 w-4" /> Identify Medicine via Camera/Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePillUpload}
+                    />
+                  </span>
+                </Button>
+                {pillFile && <span className="text-sm text-muted-foreground">{pillFile.name}</span>}
+              </label>
+
+              {pillLoading && (
+                <div className="flex items-center gap-2 text-primary">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="font-medium">Extracting text... 🔍</span>
+                </div>
+              )}
+
+              {pillResult && (
+                <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/50">
+                  <CardContent className="pt-4">
+                    <p className="font-medium text-foreground">{pillResult}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="mb-6">
             <CardHeader>
