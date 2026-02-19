@@ -1,11 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { Activity, Sun, Moon } from "lucide-react";
+import { Activity, Sun, Moon, LogOut, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const location = useLocation();
   const [isDark, setIsDark] = useState(false);
+  const { logout } = useAuth();
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
@@ -15,6 +18,26 @@ const Navbar = () => {
   const toggleTheme = () => {
     document.documentElement.classList.toggle("dark");
     setIsDark(!isDark);
+  };
+
+  const handleSOS = () => {
+    if (!navigator.geolocation) {
+      window.open("https://www.google.com/maps/search/hospitals", "_blank");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        window.open(
+          `https://www.google.com/maps/search/hospitals+near+me/@${latitude},${longitude},15z`,
+          "_blank"
+        );
+      },
+      () => {
+        toast.error("Location denied. Opening generic hospital search.");
+        window.open("https://www.google.com/maps/search/hospitals", "_blank");
+      }
+    );
   };
 
   const navLinks = [
@@ -48,14 +71,27 @@ const Navbar = () => {
           ))}
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          className="rounded-full"
-        >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleSOS}
+            className="gap-1"
+          >
+            <Siren className="h-4 w-4" /> SOS
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="rounded-full"
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={logout} className="rounded-full">
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </header>
   );
