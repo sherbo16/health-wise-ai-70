@@ -3,14 +3,22 @@ import PageLayout from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { BarChart3, TrendingUp, Heart, Activity } from "lucide-react";
+import { BarChart3, TrendingUp, Heart, Activity, Upload, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { addUserLog } from "@/lib/userLogs";
 
 const Analytics = () => {
   const [lastMonth, setLastMonth] = useState("");
   const [current, setCurrent] = useState("");
   const [chartData, setChartData] = useState<{ name: string; value: number }[] | null>(null);
   const [badge, setBadge] = useState("");
+
+  // Photo comparison state
+  const [photo1, setPhoto1] = useState<File | null>(null);
+  const [photo2, setPhoto2] = useState<File | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoChartData, setPhotoChartData] = useState<{ name: string; value: number }[] | null>(null);
+  const [photoBadge, setPhotoBadge] = useState("");
 
   const stats = [
     { label: "Health Score", value: "85", icon: Heart, color: "text-rose-500", bgColor: "bg-rose-50 dark:bg-rose-950" },
@@ -34,6 +42,40 @@ const Analytics = () => {
         ? "No change detected ➡️"
         : "Needs attention ⚠️"
     );
+  };
+
+  const handlePhotoUpload = (which: 1 | 2, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (which === 1) setPhoto1(file);
+    else setPhoto2(file);
+    addUserLog("Analytics Photo Upload", `Uploaded report photo ${which}: ${file.name}`);
+  };
+
+  const handlePhotoCompare = () => {
+    if (!photo1 || !photo2) return;
+    setPhotoLoading(true);
+    setPhotoChartData(null);
+    setPhotoBadge("");
+
+    setTimeout(() => {
+      // Simulated extracted values from uploaded reports
+      const extractedPast = Math.floor(Math.random() * 60) + 80;
+      const extractedCurrent = Math.floor(Math.random() * 60) + 80;
+      setPhotoChartData([
+        { name: "Report 1 (Past)", value: extractedPast },
+        { name: "Report 2 (Current)", value: extractedCurrent },
+      ]);
+      setPhotoBadge(
+        extractedCurrent < extractedPast
+          ? "Health is Improving! ✅"
+          : extractedCurrent === extractedPast
+          ? "No change detected ➡️"
+          : "Needs attention ⚠️"
+      );
+      setPhotoLoading(false);
+      addUserLog("Analytics Photo Compare", `Compared: ${photo1.name} vs ${photo2.name}`);
+    }, 3000);
   };
 
   return (
@@ -106,6 +148,65 @@ const Analytics = () => {
                       <YAxis />
                       <Tooltip />
                       <Bar dataKey="value" fill="hsl(199, 89%, 48%)" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Photo Report Comparison */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" /> Compare Reports via Photo Upload
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <label className="cursor-pointer">
+                  <Button variant="outline" asChild className="w-full">
+                    <span>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {photo1 ? photo1.name : "Upload Report 1 (Past)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(1, e)} />
+                    </span>
+                  </Button>
+                </label>
+                <label className="cursor-pointer">
+                  <Button variant="outline" asChild className="w-full">
+                    <span>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {photo2 ? photo2.name : "Upload Report 2 (Current)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(2, e)} />
+                    </span>
+                  </Button>
+                </label>
+              </div>
+              <Button onClick={handlePhotoCompare} disabled={!photo1 || !photo2 || photoLoading}>
+                {photoLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing Reports...
+                  </>
+                ) : (
+                  "Compare Photos"
+                )}
+              </Button>
+
+              {photoChartData && (
+                <div className="mt-4 space-y-4">
+                  {photoBadge && (
+                    <div className="inline-block rounded-full px-4 py-1 text-sm font-semibold bg-accent text-accent-foreground">
+                      {photoBadge}
+                    </div>
+                  )}
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={photoChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="hsl(142, 71%, 45%)" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
