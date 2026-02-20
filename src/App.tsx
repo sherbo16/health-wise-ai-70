@@ -21,7 +21,15 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AuthGate = () => {
-  const { isLoggedIn, role } = useAuth();
+  const { isLoggedIn, role, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) return <LoginScreen />;
   if (role === "admin") return <AdminPanel />;

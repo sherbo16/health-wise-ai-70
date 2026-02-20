@@ -23,7 +23,7 @@ const AdminPanel = () => {
                 <p className="text-muted-foreground">User activity logs</p>
               </div>
             </div>
-            <Button variant="outline" onClick={logout}>
+            <Button variant="outline" onClick={() => logout()}>
               <LogOut className="mr-2 h-4 w-4" /> Logout
             </Button>
           </div>
