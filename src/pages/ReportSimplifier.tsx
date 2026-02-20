@@ -54,24 +54,26 @@ const ReportSimplifier = () => {
 
     setLoading(true);
     try {
-      let inputContent = reportText;
+      let textContent = reportText || "Please analyze this uploaded medical report.";
+      let fileData: string | null = null;
 
       if (uploadedFile) {
         if (uploadedFile.type.startsWith('image/')) {
           const reader = new FileReader();
-          inputContent = await new Promise((resolve) => {
+          fileData = await new Promise((resolve) => {
             reader.onload = (e) => resolve(e.target?.result as string);
             reader.readAsDataURL(uploadedFile);
           });
         } else if (uploadedFile.type === 'application/pdf') {
-          inputContent = `[PDF file uploaded: ${uploadedFile.name}] ${reportText}`;
+          textContent = `[PDF file uploaded: ${uploadedFile.name}] ${reportText}`;
         }
       }
 
       const { data, error } = await supabase.functions.invoke("healthcare-ai", {
         body: {
           type: "report-simplify",
-          input: inputContent,
+          input: textContent,
+          fileData: fileData,
           hasFile: !!uploadedFile,
           fileType: uploadedFile?.type,
         },
