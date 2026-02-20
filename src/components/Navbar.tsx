@@ -1,14 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { Activity, Sun, Moon, LogOut, Siren } from "lucide-react";
+import { Activity, Sun, Moon, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const Navbar = () => {
   const location = useLocation();
   const [isDark, setIsDark] = useState(false);
-  const { logout } = useAuth();
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
@@ -87,9 +85,6 @@ const Navbar = () => {
             className="rounded-full"
           >
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          <Button variant="ghost" size="icon" onClick={logout} className="rounded-full">
-            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </div>
