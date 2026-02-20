@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { type, input, hasFile, fileType } = await req.json();
+    const { type, input, hasFile, fileType, fileData } = await req.json();
 
     // Input validation
     if (!input || typeof input !== "string") {
@@ -61,6 +61,14 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Input exceeds maximum length of 5000 characters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate fileData if present (base64 images can be large)
+    if (fileData && typeof fileData === "string" && fileData.length > 15 * 1024 * 1024) {
+      return new Response(
+        JSON.stringify({ error: "File size exceeds maximum limit" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -108,13 +116,26 @@ Make tips practical and actionable.`,
 
     const systemPrompt = systemPrompts[type] || systemPrompts["symptom-check"];
 
-    let userMessage = sanitizedInput;
-    if (hasFile && fileType) {
-      if (fileType.startsWith("image/")) {
-        userMessage = `[Image of medical report uploaded] Please analyze this medical report image and provide a simplified explanation. Additional context: ${sanitizedInput}`;
-      } else if (fileType === "application/pdf") {
-        userMessage = `[PDF medical report uploaded] Please analyze this report and provide a simplified explanation. Report content: ${sanitizedInput}`;
-      }
+    let userContent: unknown;
+    if (hasFile && fileType && fileData && fileType.startsWith("image/")) {
+      // Send as multimodal message with image
+      const base64Only = fileData.replace(/^data:image\/[^;]+;base64,/, "");
+      userContent = [
+        {
+          type: "text",
+          text: `Please analyze this medical report image and provide a simplified explanation. Additional context: ${sanitizedInput}`,
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:${fileType};base64,${base64Only}`,
+          },
+        },
+      ];
+    } else if (hasFile && fileType === "application/pdf") {
+      userContent = `[PDF medical report uploaded] Please analyze this report and provide a simplified explanation. Report content: ${sanitizedInput}`;
+    } else {
+      userContent = sanitizedInput;
     }
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -132,7 +153,7 @@ Make tips practical and actionable.`,
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: "user", content: userContent },
         ],
       }),
     });
